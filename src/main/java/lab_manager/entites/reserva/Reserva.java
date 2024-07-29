@@ -6,14 +6,21 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class Reserva<T extends Reservavel> {
+@MappedSuperclass
+public abstract class Reserva<T extends Reservavel> {
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	private UUID id;
+	@ManyToOne
 	private T item;
+	@ManyToOne
 	private Usuario usuario;
 	private LocalDateTime saidaPrevista;
 	private LocalDateTime devolucaoPrevista;
