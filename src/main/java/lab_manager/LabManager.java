@@ -1,12 +1,11 @@
 package lab_manager;
 
+import lab_manager.util.LabManagerEntityManager;
+
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
 
 public class LabManager {
 	public static void main(String[] args) {
-		EntityManagerFactory ef = Persistence.createEntityManagerFactory("lab-manager");
-		EntityManager em = ef.createEntityManager();
+		EntityManager em = LabManagerEntityManager.Factory.createEntityManager();
 	}
 }
