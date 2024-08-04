@@ -7,6 +7,7 @@ import lab_manager.exceptions.usuario.UserNotFoundException;
 import lab_manager.util.PasswordEncoder;
 
 import javax.persistence.EntityManager;
+import javax.persistence.TypedQuery;
 import java.util.List;
 
 public class UsuarioService {
@@ -18,10 +19,10 @@ public class UsuarioService {
 
     public boolean verificaSeExiste(long codigo) {
         String hql = "select u.codigo from Usuario u where u.codigo = :codigo";
-        Usuario usuario = em.createQuery(hql, Usuario.class)
+        Long codReturn = em.createQuery(hql, Long.class)
         .setParameter("codigo", codigo)
         .getSingleResult();
-        return usuario != null;
+        return codReturn != null;
     }
 
     public Usuario adicionar(Usuario usuario) {
@@ -38,18 +39,17 @@ public class UsuarioService {
         if (!verificaSeExiste(codigo)) {
             throw new UserNotFoundException("Email ou senha inválido!");
         }
-        String hql = "select u.codigo from Usuario u where u.codigo = :codigo and u.senha = :senha";
-        Usuario usuarioLogado = em.createQuery(hql, Usuario.class)
-                .setParameter("codigo", codigo)
-                .setParameter("senha", PasswordEncoder.MD5(senha))
-                .getSingleResult();
-
-        if (usuarioLogado == null) {
+        String hql = "select u from Usuario u where u.codigo = :codigo and u.senha = :senha";
+        try {
+            Usuario usuarioLogado = em.createQuery(hql, Usuario.class)
+                    .setParameter("codigo", codigo)
+                    .setParameter("senha", PasswordEncoder.MD5(senha))
+                    .getSingleResult();
+            usuarioLogado.setSenha(null);
+            return usuarioLogado;
+        } catch (Exception e) {
             throw new UserNotFoundException("Email ou senha inválido!");
         }
-
-        usuarioLogado.setSenha(null);
-        return usuarioLogado;
     }
 
     public Usuario alterarSenha(long codigo, String senha, String novaSenha, String confirmacaoSenha) {
@@ -72,11 +72,13 @@ public class UsuarioService {
      * */
     public List<Usuario> buscarDadosMinimos(String filtro) {
         String hql = "select u.codigo, u.nome from Usuario u " +
-                "where cast(u.codigo as string) like :filtro% or " +
-                "u.nome like :filtro%";
-        return em.createQuery(hql, Usuario.class)
-                .setParameter("filtro", filtro)
-                .getResultList();
+                     "where cast(u.codigo as string) like :filtro " +
+                     "or u.nome like :filtro";
+        return em.createQuery(hql, Object[].class)
+                .setParameter("filtro", filtro + "%")
+                .getResultList().stream().map(
+                        objects -> new Usuario((Long) objects[0], (String) objects[1], null, null, null, null)
+                ).toList();
     }
 
     /**
@@ -85,16 +87,21 @@ public class UsuarioService {
      * @return Dados mímnimos do usuário (RM e nome)
      * */
     public List<Usuario> buscarDadosMinimos(String filtro, TipoUsuario tipo) {
+        TypedQuery<Object[]> query = null;
         String hql = "select u.codigo, u.nome from Usuario u " +
                 "where u.tipoUsuario.codigo = :tipo ";
+        query = em.createQuery(hql, Object[].class)
+                .setParameter("tipo", tipo.getCodigo());
         if (!filtro.isEmpty()) {
-            hql += "and (cast(u.codigo as string) like :filtro% or " +
-            "u.nome like :filtro%)";
+            hql += "and (cast(u.codigo as string) like :filtro or " +
+            "u.nome like :filtro)";
+            query = em.createQuery(hql, Object[].class)
+                    .setParameter("filtro", filtro + "%")
+                    .setParameter("tipo", tipo.getCodigo());
         }
-        return em.createQuery(hql, Usuario.class)
-                .setParameter("filtro", filtro)
-                .setParameter("tipo", tipo.getCodigo())
-                .getResultList();
+        return query.getResultList().stream().map(
+                        objects -> new Usuario((Long) objects[0], (String) objects[1], null, null, null, null)
+                ).toList();
     }
 
     public void alterarImagem(Usuario usuario, String img) {
