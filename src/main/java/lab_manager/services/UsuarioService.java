@@ -25,7 +25,10 @@ public class UsuarioService {
     }
 
     public Usuario adicionar(Usuario usuario) {
+        em.getTransaction().begin();
         em.persist(usuario);
+        em.getTransaction().commit();
+        em.clear();
         Usuario usuarioAdicionado = em.find(Usuario.class, usuario.getCodigo());
         usuarioAdicionado.setSenha(null);
         return usuarioAdicionado;
@@ -55,7 +58,10 @@ public class UsuarioService {
             throw new PasswordsNotMatch("Senhas não coincidem!");
         }
         usuarioLogado.setSenha(PasswordEncoder.MD5(novaSenha));
+        em.getTransaction().begin();
         em.persist(usuarioLogado);
+        em.getTransaction().commit();
+        em.clear();
         usuarioLogado.setSenha(null);
         return usuarioLogado;
     }
@@ -92,7 +98,11 @@ public class UsuarioService {
     }
 
     public void alterarImagem(Usuario usuario, String img) {
+        usuario = em.find(Usuario.class, usuario.getCodigo());
         usuario.setImagem(img);
+        em.getTransaction().begin();
         em.persist(usuario);
+        em.getTransaction().commit();
+        em.clear();
     }
 }
